@@ -4,9 +4,18 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"math/rand"
 	"os"
 )
 
+type User struct {
+	ID int
+	Email string
+	Password string
+}
+
+
+var userStore []User 
 
 func main() {
 	fmt.Println("Hello to TODO")
@@ -16,6 +25,8 @@ func main() {
 	flag.Parse()
 
 	runCommand(*command)
+
+	fmt.Println("userStore", userStore)
 }
 
 
@@ -79,7 +90,7 @@ func createCategory() {
 func registerUser() {
 
 	scanner := bufio.NewScanner(os.Stdin)
-	var id, email, password string
+	var email, password string
 
 	fmt.Println("please enter the user email")
 	scanner.Scan()
@@ -92,9 +103,18 @@ func registerUser() {
 
 	password = scanner.Text()
 
-	id = email
+
+	id := len(userStore) + 1
 
 	fmt.Println("user:", id, email, password)
+
+	user := User {
+		ID: rand.Int(),
+		Email: email,
+		Password: password,
+	}
+
+	userStore = append(userStore, user)
 }
 
 func login() {
