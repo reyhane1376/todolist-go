@@ -24,9 +24,18 @@ func main() {
 
 	flag.Parse()
 
-	runCommand(*command)
+	for {
+		runCommand(*command)
 
-	fmt.Println("userStore", userStore)
+		scanner := bufio.NewScanner(os.Stdin)
+		fmt.Println("please enter another command")
+		scanner.Scan()
+
+		*command = scanner.Text()
+
+	}
+
+
 }
 
 
@@ -40,6 +49,8 @@ func runCommand(command string) {
 		registerUser()
 	case "login":
 		login()
+	case "exit":
+		os.Exit(0)
 	default:
 		fmt.Println("command is not find", command)
 	}
