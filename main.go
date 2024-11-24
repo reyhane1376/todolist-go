@@ -10,6 +10,7 @@ import (
 
 type User struct {
 	ID int
+	Name string
 	Email string
 	Password string
 }
@@ -101,7 +102,12 @@ func createCategory() {
 func registerUser() {
 
 	scanner := bufio.NewScanner(os.Stdin)
-	var email, password string
+	var name, email, password string
+
+	fmt.Println("please enter the user name")
+	scanner.Scan()
+
+	name = scanner.Text()
 
 	fmt.Println("please enter the user email")
 	scanner.Scan()
@@ -121,6 +127,7 @@ func registerUser() {
 
 	user := User {
 		ID: rand.Int(),
+		Name: name,
 		Email: email,
 		Password: password,
 	}
