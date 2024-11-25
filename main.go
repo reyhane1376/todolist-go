@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"math/rand"
 	"os"
 	"strconv"
 )
@@ -38,6 +37,10 @@ var categoryStore []Category
 var authenticatedUser *User
 
 func main() {
+
+	//load userstorage from file
+
+	loadUserStorageFromFile()
 	fmt.Println("Hello to TODO")
 
 	command := flag.String("command", "no command", "command to run")
@@ -54,7 +57,6 @@ func main() {
 		*command = scanner.Text()
 
 	}
-
 
 }
 
@@ -199,13 +201,46 @@ func registerUser() {
 	fmt.Println("user:", id, email, password)
 
 	user := User {
-		ID: rand.Int(),
+		ID: len(userStore) + 1,
 		Name: name,
 		Email: email,
 		Password: password,
 	}
 
 	userStore = append(userStore, user)
+
+	// save user data in user.txt file
+
+
+	var file *os.File
+
+	path := "user.txt"
+
+	file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0777)
+
+	if err != nil {
+		fmt.Println("can't create or open file", err)
+
+		return
+	}
+
+	
+	data := fmt.Sprintf("id: %d, name: %s, email: %s, password: %s\n", user.ID, user.Name, user.Email, user.Password)
+
+
+	b := []byte(data)
+	_, wErr := file.Write(b)
+
+	if wErr != nil {
+		fmt.Printf("can't write to the file %v\n", wErr)
+
+		return
+	}
+
+	file.Close()
+
+
+
 }
 
 func listTask() {
