@@ -25,6 +25,39 @@ func main() {
 
 	flag.Parse()
 
+
+	// get email and password from client
+	scan := bufio.NewScanner(os.Stdin)
+
+	fmt.Println("please enter the email")
+	scan.Scan()
+
+	email := scan.Text()
+
+	fmt.Println("please enter the password")
+	scan.Scan()
+
+	password := scan.Text()
+
+	notFound := true
+	for _, user := range userStore {
+		if user.Email == email {
+			if user.Password == password {
+				fmt.Println("you are loggin")
+				notFound = false
+			} else {
+				fmt.Println("password is incorrect")	
+			}
+		} else {
+			fmt.Println("email is incorrect")
+		}
+	}
+
+	if notFound {
+		fmt.Println("email or password is not correct")
+		return
+	}
+
 	for {
 		runCommand(*command)
 
