@@ -211,36 +211,7 @@ func registerUser() {
 	}
 
 	userStore = append(userStore, user)
-
-	// save user data in user.txt file
-
-
-	var file *os.File
-
-	file, err := os.OpenFile(userStoragePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0777)
-
-	if err != nil {
-		fmt.Println("can't create or open file", err)
-
-		return
-	}
-
-	
-	data := fmt.Sprintf("id: %d, name: %s, email: %s, password: %s\n", user.ID, user.Name, user.Email, user.Password)
-
-
-	b := []byte(data)
-	_, wErr := file.Write(b)
-
-	if wErr != nil {
-		fmt.Printf("can't write to the file %v\n", wErr)
-
-		return
-	}
-
-	file.Close()
-
-
+	writeUserToFile()
 
 }
 
@@ -346,5 +317,35 @@ func loadUserStorageFromFile() {
 		}
 	}
 
+}
+
+func writeUserToFile() {
+	// save user data in user.txt file
+
+
+	var file *os.File
+
+	file, err := os.OpenFile(userStoragePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0777)
+
+	if err != nil {
+		fmt.Println("can't create or open file", err)
+
+		return
+	}
+
+	defer file.Close()
+
+	
+	data := fmt.Sprintf("id: %d, name: %s, email: %s, password: %s\n", user.ID, user.Name, user.Email, user.Password)
+
+
+	b := []byte(data)
+	_, wErr := file.Write(b)
+
+	if wErr != nil {
+		fmt.Printf("can't write to the file %v\n", wErr)
+
+		return
+	}
 }
 
