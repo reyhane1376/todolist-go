@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 )
 
 type User struct {
@@ -35,6 +36,8 @@ var userStore []User
 var taskStore  []Task 
 var categoryStore []Category
 var authenticatedUser *User
+
+const userStoragePath = "user.txt"
 
 func main() {
 
@@ -214,9 +217,7 @@ func registerUser() {
 
 	var file *os.File
 
-	path := "user.txt"
-
-	file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0777)
+	file, err := os.OpenFile(userStoragePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0777)
 
 	if err != nil {
 		fmt.Println("can't create or open file", err)
@@ -280,5 +281,70 @@ func login() {
 	}
 
 	fmt.Println("user:", email, password)
+}
+
+func loadUserStorageFromFile() {
+	file, err := os.Open(userStoragePath)
+
+	if err != nil {
+		fmt.Println("can't open the file", err)
+	}
+
+	var data = make([]byte, 10240)
+	_, oErr := file.Read(data)
+	if oErr != nil {
+		fmt.Println("can't read from the file", oErr)
+	}
+
+	var dataStr = string(data)
+
+	dataStr = strings.Trim(dataStr, "\n")
+   
+	strings.Replace(dataStr, "\n", "fff", -1)
+
+	userSlice := strings.Split(dataStr, "\n")
+
+
+	for _, u := range userSlice {
+		if u == "" {
+			continue
+		}
+
+		userFields := strings.Split(u, ",")
+		var user = User{}
+
+		for _, field := range userFields {
+			values := strings.Split(field, ": ")
+
+			if len(values) != 2 {
+				fmt.Println("field is not valid skipping...", len(values))
+
+				continue
+			}
+
+			fieldName := strings.ReplaceAll(values[0], " ", "")
+			fieldValue := values[1]
+
+
+			switch fieldName {
+			case "id" :
+				id, err := strconv.Atoi(fieldValue)
+
+				if err != nil {
+					fmt.Printf("id is not a number", err)
+
+					return
+				}
+				user.ID = id
+			case "name" :
+				user.Name = fieldValue
+			case "email" :
+				user.Email = fieldValue
+			case "password" :
+				user.Password = fieldValue
+			}
+		}
+	}
+
 }
 
