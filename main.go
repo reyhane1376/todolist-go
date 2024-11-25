@@ -15,8 +15,18 @@ type User struct {
 	Password string
 }
 
+type Task struct {
+	ID int
+	Title string
+	DueDate string
+	Category string
+	IsDone bool
+	UserID int
+}
 
 var userStore []User 
+var taskStore  []Task 
+var authenticatedUser *User
 
 func main() {
 	fmt.Println("Hello to TODO")
@@ -24,39 +34,6 @@ func main() {
 	command := flag.String("command", "no command", "command to run")
 
 	flag.Parse()
-
-
-	// get email and password from client
-	scan := bufio.NewScanner(os.Stdin)
-
-	fmt.Println("please enter the email")
-	scan.Scan()
-
-	email := scan.Text()
-
-	fmt.Println("please enter the password")
-	scan.Scan()
-
-	password := scan.Text()
-
-	notFound := true
-	for _, user := range userStore {
-		if user.Email == email {
-			if user.Password == password {
-				fmt.Println("you are loggin")
-				notFound = false
-			} else {
-				fmt.Println("password is incorrect")	
-			}
-		} else {
-			fmt.Println("email is incorrect")
-		}
-	}
-
-	if notFound {
-		fmt.Println("email or password is not correct")
-		return
-	}
 
 	for {
 		runCommand(*command)
@@ -74,6 +51,13 @@ func main() {
 
 
 func runCommand(command string) {
+	if command != "register-user" && command != "exit" && authenticatedUser == nil {
+		login()
+
+		if authenticatedUser == nil {
+			return
+		}
+	}
 	switch command {
 	case "create-task":
 		createTask()
@@ -81,6 +65,8 @@ func runCommand(command string) {
 		createCategory()
 	case "register-user":
 		registerUser()
+	case "list-task":
+		listTask()
 	case "login":
 		login()
 	case "exit":
@@ -91,13 +77,16 @@ func runCommand(command string) {
 }
 
 func createTask() {
+	if (authenticatedUser != nil) {
+
+	}
 	scanner := bufio.NewScanner(os.Stdin)
-	var name, duedate, category string
+	var title, duedate, category string
 
 	fmt.Println("please enter the task title")
 	scanner.Scan()
 
-	name = scanner.Text()
+	title = scanner.Text()
 
 	fmt.Println("please enter the task category")
 	scanner.Scan()
@@ -110,8 +99,20 @@ func createTask() {
 
 	duedate = scanner.Text()
 
+	task := Task{
+		ID      : len(taskStore) + 1,
+		Title   : title,
+		DueDate : duedate,
+		Category: category,
+		IsDone  : false,
+		UserID  : authenticatedUser.ID,
 
-	fmt.Println("task:", name, category, duedate)
+	}
+
+	taskStore = append(taskStore, task)
+
+
+	fmt.Println("task:", title, category, duedate)
 }
 
 
@@ -168,20 +169,41 @@ func registerUser() {
 	userStore = append(userStore, user)
 }
 
+func listTask() {
+	for _, task := range taskStore {
+		if task.UserID == authenticatedUser.ID {
+			fmt.Println(task)
+		}
+	}
+}
+
 func login() {
 	scanner := bufio.NewScanner(os.Stdin)
-	var email, password string
+
+	fmt.Println("you must login first")
 
 	fmt.Println("please enter the user email")
 	scanner.Scan()
 
-	email = scanner.Text()
+	email := scanner.Text()
 
 
 	fmt.Println("please enter the user password")
 	scanner.Scan()
 
-	password = scanner.Text()
+	password := scanner.Text()
+
+	for _, user := range userStore {
+		if user.Email == email && user.Password == password {
+			authenticatedUser = &user
+
+			break
+		}
+	}
+
+	if authenticatedUser == nil {
+		fmt.Println("email or password is not correct")
+	}
 
 	fmt.Println("user:", email, password)
 }
