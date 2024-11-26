@@ -2,6 +2,8 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -32,23 +34,40 @@ type Category struct {
 	UserID int
 }
 
-var userStore []User 
-var taskStore  []Task 
-var categoryStore []Category
-var authenticatedUser *User
+var (
+	userStore []User  
+	taskStore  []Task 
+	categoryStore []Category
+	authenticatedUser *User
 
-const userStoragePath = "user.txt"
+	serializationMode string
+)
+
+const (
+	userStoragePath               = "user.txt"
+	ManDarAvardiSerializationMode = "mandaravardi"
+	JsonSerializationMode         = "json"
+)
 
 func main() {
 
-	//load userstorage from file
-
-	loadUserStorageFromFile()
 	fmt.Println("Hello to TODO")
 
+	sm := flag.String("serialization-mode", ManDarAvardiSerializationMode, "serialization mode")
 	command := flag.String("command", "no command", "command to run")
 
 	flag.Parse()
+	//load userstorage from file
+	loadUserStorageFromFile(serializationMode)
+	
+
+	switch *sm {
+	case ManDarAvardiSerializationMode:
+		serializationMode = ManDarAvardiSerializationMode
+	default:
+		serializationMode = JsonSerializationMode
+
+	}
 
 	for {
 		runCommand(*command)
@@ -211,7 +230,7 @@ func registerUser() {
 	}
 
 	userStore = append(userStore, user)
-	writeUserToFile()
+	writeUserToFile(user)
 
 }
 
@@ -254,7 +273,7 @@ func login() {
 	fmt.Println("user:", email, password)
 }
 
-func loadUserStorageFromFile() {
+func loadUserStorageFromFile(serializationMode string) {
 	file, err := os.Open(userStoragePath)
 
 	if err != nil {
@@ -275,51 +294,47 @@ func loadUserStorageFromFile() {
 
 	userSlice := strings.Split(dataStr, "\n")
 
-
 	for _, u := range userSlice {
-		if u == "" {
-			continue
-		}
+		var userStruct = User{}
 
-		userFields := strings.Split(u, ",")
-		var user = User{}
+		switch serializationMode {
+		case ManDarAvardiSerializationMode:
+			var DErr error
 
-		for _, field := range userFields {
-			values := strings.Split(field, ": ")
+			userStruct, DErr = deserializeFromMandaravardi(u)
 
-			if len(values) != 2 {
-				fmt.Println("field is not valid skipping...", len(values))
+			if DErr != nil {
+				 fmt.Println("can't deserialize user record to user struct", DErr)
+	
+				 return
+			}
 
+		case JsonSerializationMode:
+
+			if  u[0] != '{' && u[len(u)-1] != '}' {
 				continue
 			}
-
-			fieldName := strings.ReplaceAll(values[0], " ", "")
-			fieldValue := values[1]
-
-
-			switch fieldName {
-			case "id" :
-				id, err := strconv.Atoi(fieldValue)
-
-				if err != nil {
-					fmt.Printf("id is not a number", err)
-
-					return
-				}
-				user.ID = id
-			case "name" :
-				user.Name = fieldValue
-			case "email" :
-				user.Email = fieldValue
-			case "password" :
-				user.Password = fieldValue
+			uErr := json.Unmarshal([]byte(u), &userStruct)
+			if uErr != nil {
+				fmt.Println("can't deserialize user record to user struct from json", uErr)
+	
+				return
 			}
+
+		default:
+			fmt.Println("invalid serialization mode")
+
+			return
 		}
+
+		
+		userStore = append(userStore, userStruct) 
+
 	}
 
 }
 
-func writeUserToFile() {
+func writeUserToFile(user User) {
 	// save user data in user.txt file
 
 
@@ -335,17 +350,77 @@ func writeUserToFile() {
 
 	defer file.Close()
 
+	var data []byte
+	if serializationMode == ManDarAvardiSerializationMode {
+		data = []byte(fmt.Sprintf("id: %d, name: %s, email: %s, password: %s\n", user.ID, user.Name, user.Email, user.Password))
+
+	} else if serializationMode == JsonSerializationMode {
+		data, err = json.Marshal(user)
+
+		if err != nil {
+			fmt.Println("can't marshal user struct to json", err)
+
+			return
+		}
+
+		data = append(data, []byte("\n")...)
+	} else {
+		fmt.Println("invalid serialization mode")
+
+		return
+	}
 	
-	data := fmt.Sprintf("id: %d, name: %s, email: %s, password: %s\n", user.ID, user.Name, user.Email, user.Password)
 
 
-	b := []byte(data)
-	_, wErr := file.Write(b)
+	_, wErr := file.Write(data)
 
 	if wErr != nil {
 		fmt.Printf("can't write to the file %v\n", wErr)
 
 		return
 	}
+}
+
+func deserializeFromMandaravardi(userStr string) (User, error) {
+	if userStr == "" {
+		return User{}, errors.New("user string is empty")
+	}
+
+	userFields := strings.Split(userStr, ",")
+	var user = User{}
+
+	for _, field := range userFields {
+		values := strings.Split(field, ": ")
+
+		if len(values) != 2 {
+			fmt.Println("field is not valid skipping...", len(values))
+
+			continue
+		}
+
+		fieldName := strings.ReplaceAll(values[0], " ", "")
+		fieldValue := values[1]
+
+
+		switch fieldName {
+		case "id" :
+			id, err := strconv.Atoi(fieldValue)
+
+			if err != nil {
+				fmt.Println("id is not a number", err)
+
+				return User{}, errors.New("strconv error")
+			}
+			user.ID = id
+		case "name" :
+			user.Name = fieldValue
+		case "email" :
+			user.Email = fieldValue
+		case "password" :
+			user.Password = fieldValue
+		}
+	}
+
+	return user, nil
 }
 
